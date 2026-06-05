@@ -20,10 +20,20 @@ export default async function handler(req, res) {
           contents: [{
             parts: [
               { inline_data: { mime_type: mediaType || 'image/jpeg', data: image } },
-              { text: prompt }
+              { text: `You are an SVG generator. Look at this floor plan image and recreate it as a clean SVG line drawing.
+
+RULES:
+- Output ONLY raw SVG code
+- Start with <svg viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
+- End with </svg>
+- Use only rect, line, polyline, path elements
+- Black strokes (#1a1a1a) on white background
+- No furniture, no text labels, no dimensions
+- No markdown, no explanation, no code blocks
+- Just the SVG code, nothing else` }
             ]
           }],
-          generationConfig: { maxOutputTokens: 4096, temperature: 0.1 }
+          generationConfig: { maxOutputTokens: 4096, temperature: 0 }
         })
       }
     );
