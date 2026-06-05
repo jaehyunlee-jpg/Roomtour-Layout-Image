@@ -9,30 +9,29 @@ export default async function handler(req, res) {
   if (!apiKey) return res.status(500).json({ error: 'API key not configured' });
 
   const stylePrompts = {
-    line: 'architectural floor plan, clean black line drawing on white background, minimal, no color, no furniture',
-    sketch: 'hand drawn sketch of floor plan, pencil drawing style, soft lines on white paper',
-    blueprint: 'architectural blueprint, white lines on dark blue background, technical drawing style',
-    anime: 'anime style illustration of floor plan, colorful, clean lines, japanese manga style',
-    watercolor: 'watercolor illustration of floor plan, soft pastel colors, artistic style',
-    minimal: 'minimalist floor plan illustration, simple geometric shapes, modern design, black and white'
+    line: 'floor plan, architectural line drawing, black and white, minimal',
+    sketch: 'floor plan, pencil sketch, hand drawn, soft lines',
+    blueprint: 'floor plan, blueprint style, white lines on blue background',
+    anime: 'floor plan, anime style, colorful illustration',
+    watercolor: 'floor plan, watercolor painting, soft pastel colors',
+    minimal: 'floor plan, minimalist, simple geometric, modern'
   };
 
-  const prompt = stylePrompts[style] || stylePrompts.line;
-  const fullPrompt = extra ? `${prompt}, ${extra}` : prompt;
+  const prompt = (stylePrompts[style] || stylePrompts.line) + (extra ? `, ${extra}` : '');
 
   try {
     const imgBuffer = Buffer.from(image, 'base64');
     
     const response = await fetch(
-      'https://api-inference.huggingface.co/models/lllyasviel/control_v11p_sd15_lineart',
+      'https://api-inference.huggingface.co/models/Falconsai/image_to_text',
       {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${apiKey}`,
           'Content-Type': 'application/octet-stream',
-          'x-use-cache': 'false'
         },
-        body: imgBuffer
+        body: imgBuffer,
+        signal: AbortSignal.timeout(8000)
       }
     );
 
