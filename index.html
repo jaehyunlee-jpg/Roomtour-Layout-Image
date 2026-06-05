@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>間取りイラスト変換ツール</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f3;color:#1a1a1a;min-height:100vh;display:flex;align-items:flex-start;justify-content:center;padding:40px 16px}
+.card{background:#fff;border-radius:16px;border:1px solid #e5e5e3;padding:32px;width:100%;max-width:640px}
+.header{margin-bottom:28px}
+.header h1{font-size:18px;font-weight:600;margin-bottom:4px}
+.header p{font-size:13px;color:#888}
+.badge{display:inline-block;font-size:11px;padding:2px 10px;border-radius:99px;background:#f0f0ee;color:#888;border:1px solid #e5e5e3;float:right;margin-top:2px}
+.sl{font-size:11px;color:#999;text-transform:uppercase;letter-spacing:.07em;font-weight:600;margin-bottom:10px}
+.uz{border:1.5px dashed #d0d0ce;border-radius:12px;padding:36px 20px;text-align:center;cursor:pointer;background:#fafaf8}
+.uz:hover{background:#f0f4ff;border-color:#4a7ff5}
+.uz p{font-size:14px;color:#555;margin-bottom:4px}
+.uz span{font-size:12px;color:#aaa}
+hr{border:none;border-top:1px solid #f0f0ee;margin:24px 0}
+.sg{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.sc{border:1px solid #e5e5e3;border-radius:10px;padding:12px 14px;cursor:pointer}
+.sc:hover{background:#fafaf8}
+.sc.selected{border-color:#4a7ff5;background:#f0f4ff}
+.sc strong{font-size:13px;font-weight:600;display:block;margin-bottom:2px}
+.sc span{font-size:12px;color:#888}
+textarea{width:100%;font-size:13px;resize:vertical;border-radius:8px;padding:10px 12px;border:1px solid #e0e0de;background:#fafaf8;color:#1a1a1a;font-family:inherit;outline:none;margin-top:10px}
+textarea:focus{border-color:#4a7ff5}
+.pg{display:none;grid-template-columns:1fr 1fr;gap:12px}
+.pg.active{display:grid}
+.pb{border-radius:10px;overflow:hidden;border:1px solid #e5e5e3;background:#fafaf8}
+.pb img{width:100%;height:200px;object-fit:contain;display:block;padding:10px}
+.pb .bl{font-size:12px;color:#999;padding:8px 12px;border-top:1px solid #f0f0ee}
+.ep{border-radius:10px;border:1px solid #e5e5e3;background:#fafaf8;padding:28px 20px;text-align:center}
+.ep p{font-size:13px;color:#bbb}
+.rp{height:200px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px}
+.rp span{font-size:13px;color:#bbb}
+.ar{display:flex;gap:10px;margin-top:16px}
+.btn{padding:11px 20px;font-size:14px;font-weight:500;border-radius:10px;border:1px solid #e0e0de;cursor:pointer;background:#fff;color:#1a1a1a;font-family:inherit}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.bp{flex:1;background:#1a1a1a;color:#fff;border-color:#1a1a1a}
+.bp:hover:not(:disabled){background:#333}
+.bd{display:none}
+.bd.active{display:block}
+.st{font-size:13px;color:#888;margin-top:10px;min-height:20px}
+.st.error{color:#d04040}
+.st.success{color:#2a9d5c}
+.pp{font-size:11px;color:#aaa;font-family:monospace;background:#fafaf8;border-radius:8px;padding:8px 12px;margin-top:10px;line-height:1.6;border:1px solid #f0f0ee;word-break:break-all}
+.fn{font-size:12px;color:#bbb;margin-top:16px}
+#sc2{width:100%;height:200px;display:flex;align-items:center;justify-content:center;padding:10px}
+#sc2 svg{max-width:100%;max-height:180px}
+.sp{display:inline-block;width:16px;height:16px;border:2px solid #ccc;border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:-3px;margin-right:6px}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div class="card">
+<div class="header">
+<span class="badge">エディター専用</span>
+<h1>間取り → 線画イラスト変換</h1>
+<p>ユーザーの間取り図を建築図面スタイルの線画に変換します</p>
+</div>
+<p class="sl">1. 間取り図をアップロード</p>
+<div class="uz" id="uz" onclick="document.getElementById('fi').click()">
+<p>クリックまたはドラッグ＆ドロップ</p>
+<span>PNG / JPG · 最大10MB</span>
+</div>
+<input type="file" id="fi" accept="image/*" style="display:none">
+<hr>
+<p class="sl">2. スタイル選択</p>
+<div class="sg">
+<div class="sc selected" data-style="minimal" onclick="sel(this)"><strong>シンプル線画</strong><span>黒線・白背景・建築図面風</span></div>
+<div class="sc" data-style="annotated" onclick="sel(this)"><strong>注釈付き線画</strong><span>部屋名ラベル入り</span></div>
+<div class="sc" data-style="soft" onclick="sel(this)"><strong>ソフト線画</strong><span>薄グレー・やわらかい印象</span></div>
+<div class="sc" data-style="bold" onclick="sel(this)"><strong>ボールド線画</strong><span>太線・コントラスト強め</span></div>
+</div>
+<p class="sl" style="margin-top:20px">追加指示（任意）</p>
+<textarea id="ep" rows="2" placeholder="例：北側の窓を省略 / バルコニーを強調"></textarea>
+<div class="pp" id="pp"></div>
+<hr>
+<p class="sl">3. 変換プレビュー</p>
+<div class="ep" id="emp"><p>画像をアップロードすると、ここにプレビューが表示されます</p></div>
+<div class="pg" id="pg">
+<div class="pb"><img id="oi" src="" alt="元の間取り図"><div class="bl">元画像</div></div>
+<div class="pb"><div class="rp" id="rp"><span>変換ボタンで生成</span></div><div id="sc2" style="display:none"></div><div class="bl">変換後（線画）</div></div>
+</div>
+<div class="ar">
+<button class="btn bp" id="cb" disabled onclick="conv()">線画に変換</button>
+<button class="btn bd" id="db" onclick="dl()">SVG保存</button>
+</div>
+<div class="st" id="sb"></div>
+<p class="fn">※ アップロードされた画像はAI処理のみに使用され、サーバーに保存されません。</p>
+</div>
+<script>
+const sp={minimal:'Convert this floor plan into a minimal architectural line drawing SVG. Clean black strokes on white background. Room outlines only. No furniture, no dimensions, no labels. viewBox="0 0 400 400". Return only SVG code.',annotated:'Convert this floor plan into an architectural line drawing SVG with Japanese room labels. Black strokes on white. Label rooms (リビング,寝室,キッチン,浴室,トイレ). viewBox="0 0 400 400". Return only SVG code.',soft:'Convert this floor plan into a soft line drawing SVG. Light gray strokes (#aaa) on white. Thin strokes. viewBox="0 0 400 400". Return only SVG code.',bold:'Convert this floor plan into a bold line drawing SVG. Thick black strokes (stroke-width:3) on white. High contrast. viewBox="0 0 400 400". Return only SVG code.'};
+let ss='minimal',uf=null,rs=null;
+function sel(e){document.querySelectorAll('.sc').forEach(c=>c.classList.remove('selected'));e.classList.add('selected');ss=e.dataset.style;up()}
+function up(){const x=document.getElementById('ep').value.trim();let b=sp[ss];if(x)b+=' Additional: '+x;document.getElementById('pp').textContent=b}
+document.getElementById('ep').addEventListener('input',up);up();
+const uz=document.getElementById('uz');
+uz.addEventListener('dragover',e=>{e.preventDefault();uz.classList.add('dragover')});
+uz.addEventListener('dragleave',()=>uz.classList.remove('dragover'));
+uz.addEventListener('drop',e=>{e.preventDefault();uz.classList.remove('dragover');if(e.dataTransfer.files[0])hf(e.dataTransfer.files[0])});
+document.getElementById('fi').addEventListener('change',e=>{if(e.target.files[0])hf(e.target.files[0])});
+function hf(f){uf=f;const r=new FileReader();r.onload=e=>{document.getElementById('oi').src=e.target.result;document.getElementById('emp').style.display='none';document.getElementById('pg').classList.add('active');document.getElementById('cb').disabled=false;document.getElementById('rp').style.display='flex';document.getElementById('sc2').style.display='none';document.getElementById('db').classList.remove('active');rs=null;st('');uz.querySelector('p').textContent=f.name;uz.querySelector('span').textContent=(f.size/1024).toFixed(0)+' KB'};r.readAsDataURL(f)}
+async function conv(){if(!uf)return;const b=document.getElementById('cb');b.disabled=true;b.innerHTML='<span class="sp"></span>変換中...';st('AIが解析中...');const r=new FileReader();r.onload=async e=>{const b64=e.target.result.split(',')[1];const mt=uf.type||'image/jpeg';const ex=document.getElementById('ep').value.trim();let pr=sp[ss];if(ex)pr+=' Additional: '+ex;pr+='\nReturn ONLY valid SVG code starting with <svg';try{const res=await fetch('/api/convert',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({image:b64,mediaType:mt,prompt:pr})});const d=await res.json();if(!res.ok)throw new Error(d.error||'エラー');const m=d.result.match(/<svg[\s\S]*?<\/svg>/i);if(m){rs=m[0];document.getElementById('sc2').innerHTML=rs;document.getElementById('sc2').style.display='flex';document.getElementById('rp').style.display='none';document.getElementById('db').classList.add('active');st('変換完了！','success')}else throw new Error('SVG生成失敗')}catch(e){st(e.message,'error')};b.disabled=false;b.innerHTML='再変換'};r.readAsDataURL(uf)}
+function st(m,t){const e=document.getElementById('sb');e.textContent=m;e.className='st'+(t?' '+t:'')}
+function dl(){if(!rs)return;const b=new Blob([rs],{type:'image/svg+xml'});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download='madori_'+Date.now()+'.svg';a.click();URL.revokeObjectURL(u)}
+</script>
+</body>
+</html>
