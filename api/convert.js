@@ -2,47 +2,64 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
-  const { image, mediaType, prompt } = req.body;
-  if (!image || !prompt) {
-    return res.status(400).json({ error: 'image and prompt are required' });
+  const { image, mediaType, style } = req.body;
+  if (!image) {
+    return res.status(400).json({ error: 'image is required' });
   }
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     return res.status(500).json({ error: 'API key not configured' });
   }
+
+  const styleMap = {
+    line: 'lineart',
+    sketch: 'scribble',
+    blueprint: 'lineart',
+    anime: 'anime',
+    watercolor: 'watercolor'
+  };
+
+  const controlnetStyle = styleMap[style] || 'lineart';
+
   try {
+    const blob = await fetch(`data:${mediaType};base64,${image}`).then(r => r.blob());
+    const formData = new FormData();
+    formData.append('inputs', blob, 'image.jpg');
+
+    const model = style === 'anime' 
+      ? 'lllyasviel/sd-controlnet-scribble'
+      : 'lllyasviel/sd-controlnet-lineart';
+
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`,
+      `https://api-inference.huggingface.co/models/lllyasviel/sd-controlnet-lineart`,
       {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify({
-          contents: [{
-            parts: [
-              { inline_data: { mime_type: mediaType || 'image/jpeg', data: image } },
-              { text: `You are an SVG generator. Look at this floor plan image and recreate it as a clean SVG line drawing.
-
-RULES:
-- Output ONLY raw SVG code
-- Start with <svg viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
-- End with </svg>
-- Use only rect, line, polyline, path elements
-- Black strokes (#1a1a1a) on white background
-- No furniture, no text labels, no dimensions
-- No markdown, no explanation, no code blocks
-- Just the SVG code, nothing else` }
-            ]
-          }],
-          generationConfig: { maxOutputTokens: 4096, temperature: 0 }
+          inputs: image,
+          parameters: {
+            prompt: style === 'blueprint' 
+              ? 'architectural blueprint, white lines on blue background, technical drawing'
+              : style === 'anime'
+              ? 'anime style floor plan illustration, clean lines, colorful'
+              : 'clean architectural line drawing, black lines on white background, minimal'
+          }
         })
       }
     );
-    const data = await response.json();
+
     if (!response.ok) {
-      return res.status(response.status).json({ error: data.error?.message || 'Gemini API error' });
+      const err = await response.json();
+      return res.status(response.status).json({ error: err.error || 'Hugging Face API error' });
     }
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    return res.status(200).json({ result: text });
+
+    const buffer = await response.arrayBuffer();
+    const base64 = Buffer.from(buffer).toString('base64');
+    return res.status(200).json({ result: base64, type: 'image' });
+
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
