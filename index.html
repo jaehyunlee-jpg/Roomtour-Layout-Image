@@ -16,16 +16,18 @@ h1{font-size:18px;font-weight:600;margin-bottom:4px}
 .uz:hover{background:#f0f4ff;border-color:#4a7ff5}
 .uz p{font-size:14px;color:#555;margin-bottom:4px}
 .uz span{font-size:12px;color:#aaa}
-.sg{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:24px}
+.sg{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
 .sc{border:1px solid #e5e5e3;border-radius:10px;padding:12px 14px;cursor:pointer;text-align:center}
 .sc:hover{background:#fafaf8}
 .sc.selected{border-color:#4a7ff5;background:#f0f4ff}
 .sc strong{font-size:13px;font-weight:600;display:block;margin-bottom:2px}
 .sc span{font-size:11px;color:#888}
+textarea{width:100%;font-size:13px;resize:vertical;border-radius:8px;padding:10px 12px;border:1px solid #e0e0de;background:#fafaf8;color:#1a1a1a;font-family:inherit;outline:none;margin-bottom:20px}
+textarea:focus{border-color:#4a7ff5}
 .pg{display:none;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
 .pg.active{display:grid}
 .pb{border-radius:10px;overflow:hidden;border:1px solid #e5e5e3}
-.pb img,.pb canvas{width:100%;height:240px;object-fit:contain;display:block;background:#fafaf8;padding:8px}
+.pb img{width:100%;height:240px;object-fit:contain;display:block;background:#fafaf8;padding:8px}
 .bl{font-size:12px;color:#999;padding:8px 12px;border-top:1px solid #f0f0ee}
 .ep{border-radius:10px;border:1px solid #e5e5e3;background:#fafaf8;padding:28px 20px;text-align:center;margin-bottom:16px}
 .ep p{font-size:13px;color:#bbb}
@@ -40,13 +42,15 @@ h1{font-size:18px;font-weight:600;margin-bottom:4px}
 .st.success{color:#2a9d5c}
 .st.error{color:#d04040}
 hr{border:none;border-top:1px solid #f0f0ee;margin:20px 0}
+.sp{display:inline-block;width:14px;height:14px;border:2px solid #ccc;border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:-2px;margin-right:6px}
+@keyframes spin{to{transform:rotate(360deg)}}
 </style>
 </head>
 <body>
 <div class="card">
 <span class="badge">エディター専用</span>
-<h1>間取り → 線画イラスト変換</h1>
-<p class="sub">ユーザーの間取り図を線画スタイルに変換します（完全無料・ブラウザ処理）</p>
+<h1>間取り → イラスト変換</h1>
+<p class="sub">ユーザーの間取り図をAIでイラスト化します</p>
 
 <p class="sl">1. 間取り図をアップロード</p>
 <div class="uz" id="uz" onclick="document.getElementById('fi').click()">
@@ -58,29 +62,33 @@ hr{border:none;border-top:1px solid #f0f0ee;margin:20px 0}
 <p class="sl">2. スタイル選択</p>
 <div class="sg">
 <div class="sc selected" data-style="line" onclick="sel(this)"><strong>シンプル線画</strong><span>白黒・建築図面風</span></div>
-<div class="sc" data-style="sketch" onclick="sel(this)"><strong>スケッチ風</strong><span>やわらかい線</span></div>
+<div class="sc" data-style="sketch" onclick="sel(this)"><strong>スケッチ風</strong><span>手書き・やわらか</span></div>
 <div class="sc" data-style="blueprint" onclick="sel(this)"><strong>ブループリント</strong><span>青地・白線</span></div>
+<div class="sc" data-style="anime" onclick="sel(this)"><strong>アニメ風</strong><span>カラー・イラスト</span></div>
+<div class="sc" data-style="watercolor" onclick="sel(this)"><strong>水彩風</strong><span>やわらかい色彩</span></div>
+<div class="sc" data-style="minimal" onclick="sel(this)"><strong>ミニマル</strong><span>シンプル・モダン</span></div>
 </div>
+
+<p class="sl">3. 追加指示（任意）</p>
+<textarea id="ep" rows="2" placeholder="例：バルコニーを省略してください / 北側の窓を強調してください"></textarea>
 
 <div class="ep" id="emp"><p>画像をアップロードするとプレビューが表示されます</p></div>
 <div class="pg" id="pg">
 <div class="pb"><img id="oi" src="" alt="元の間取り図"><div class="bl">元画像</div></div>
-<div class="pb"><canvas id="cv"></canvas><div class="bl">変換後</div></div>
+<div class="pb"><img id="ri" src="" alt="変換後" style="display:none;width:100%;height:240px;object-fit:contain;padding:8px"><div id="rp" style="height:240px;display:flex;align-items:center;justify-content:center;font-size:13px;color:#bbb">変換ボタンで生成</div><div class="bl">変換後（AI）</div></div>
 </div>
 
 <div class="ar">
-<button class="btn bp" id="cb" disabled onclick="conv()">線画に変換</button>
+<button class="btn bp" id="cb" disabled onclick="conv()">AIで変換</button>
 <button class="btn bd" id="db" onclick="dl()">PNG保存</button>
 </div>
 <div class="st" id="sb"></div>
 </div>
 
 <script>
-let ss='line', uf=null;
-const cv=document.getElementById('cv');
-const ctx=cv.getContext('2d');
+let ss='line', uf=null, resultB64=null;
 
-function sel(e){document.querySelectorAll('.sc').forEach(c=>c.classList.remove('selected'));e.classList.add('selected');ss=e.dataset.style;if(uf)conv()}
+function sel(e){document.querySelectorAll('.sc').forEach(c=>c.classList.remove('selected'));e.classList.add('selected');ss=e.dataset.style}
 
 const uz=document.getElementById('uz');
 uz.addEventListener('dragover',e=>{e.preventDefault();uz.style.background='#f0f4ff'});
@@ -96,7 +104,10 @@ function hf(f){
     document.getElementById('emp').style.display='none';
     document.getElementById('pg').classList.add('active');
     document.getElementById('cb').disabled=false;
+    document.getElementById('ri').style.display='none';
+    document.getElementById('rp').style.display='flex';
     document.getElementById('db').classList.remove('active');
+    resultB64=null;
     uz.querySelector('p').textContent=f.name;
     uz.querySelector('span').textContent=(f.size/1024).toFixed(0)+' KB';
     st('');
@@ -104,88 +115,54 @@ function hf(f){
   r.readAsDataURL(f);
 }
 
-function conv(){
+async function conv(){
   if(!uf)return;
-  const img=new Image();
-  img.onload=()=>{
-    cv.width=img.width;
-    cv.height=img.height;
-    ctx.drawImage(img,0,0);
-    const id=ctx.getImageData(0,0,cv.width,cv.height);
-    const d=id.data;
+  const btn=document.getElementById('cb');
+  btn.disabled=true;
+  btn.innerHTML='<span class="sp"></span>AI変換中... (30秒ほどかかります)';
+  st('Hugging FaceのAIが処理中です...');
 
-    if(ss==='line'){
-      // 그레이스케일 → 엣지 검출
-      const gray=new Uint8ClampedArray(cv.width*cv.height);
-      for(let i=0;i<d.length;i+=4){
-        gray[i/4]=0.299*d[i]+0.587*d[i+1]+0.114*d[i+2];
+  const reader=new FileReader();
+  reader.onload=async e=>{
+    const base64=e.target.result.split(',')[1];
+    const mediaType=uf.type||'image/jpeg';
+    const extra=document.getElementById('ep').value.trim();
+
+    try{
+      const resp=await fetch('/api/convert',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({image:base64,mediaType,style:ss,extra})
+      });
+      const data=await resp.json();
+      if(!resp.ok)throw new Error(data.error||'エラーが発生しました');
+
+      if(data.type==='image'&&data.result){
+        resultB64=data.result;
+        document.getElementById('ri').src='data:image/png;base64,'+data.result;
+        document.getElementById('ri').style.display='block';
+        document.getElementById('rp').style.display='none';
+        document.getElementById('db').classList.add('active');
+        st('変換完了！','success');
+      } else {
+        throw new Error('画像の生成に失敗しました');
       }
-      // Sobel edge detection
-      for(let y=1;y<cv.height-1;y++){
-        for(let x=1;x<cv.width-1;x++){
-          const i=y*cv.width+x;
-          const gx=-gray[(y-1)*cv.width+(x-1)]-2*gray[y*cv.width+(x-1)]-gray[(y+1)*cv.width+(x-1)]
-                   +gray[(y-1)*cv.width+(x+1)]+2*gray[y*cv.width+(x+1)]+gray[(y+1)*cv.width+(x+1)];
-          const gy=-gray[(y-1)*cv.width+(x-1)]-2*gray[(y-1)*cv.width+x]-gray[(y-1)*cv.width+(x+1)]
-                   +gray[(y+1)*cv.width+(x-1)]+2*gray[(y+1)*cv.width+x]+gray[(y+1)*cv.width+(x+1)];
-          const mag=Math.min(255,Math.sqrt(gx*gx+gy*gy)*2);
-          const pi=(y*cv.width+x)*4;
-          const v=255-mag;
-          d[pi]=v;d[pi+1]=v;d[pi+2]=v;d[pi+3]=255;
-        }
-      }
-    } else if(ss==='sketch'){
-      // 그레이스케일 + 부드러운 엣지
-      const gray=new Uint8ClampedArray(cv.width*cv.height);
-      for(let i=0;i<d.length;i+=4){
-        gray[i/4]=0.299*d[i]+0.587*d[i+1]+0.114*d[i+2];
-      }
-      for(let y=1;y<cv.height-1;y++){
-        for(let x=1;x<cv.width-1;x++){
-          const gx=-gray[(y-1)*cv.width+(x-1)]-2*gray[y*cv.width+(x-1)]-gray[(y+1)*cv.width+(x-1)]
-                   +gray[(y-1)*cv.width+(x+1)]+2*gray[y*cv.width+(x+1)]+gray[(y+1)*cv.width+(x+1)];
-          const gy=-gray[(y-1)*cv.width+(x-1)]-2*gray[(y-1)*cv.width+x]-gray[(y-1)*cv.width+(x+1)]
-                   +gray[(y+1)*cv.width+(x-1)]+2*gray[(y+1)*cv.width+x]+gray[(y+1)*cv.width+(x+1)];
-          const mag=Math.min(255,Math.sqrt(gx*gx+gy*gy)*1.5);
-          const pi=(y*cv.width+x)*4;
-          const v=255-mag*0.8;
-          d[pi]=v;d[pi+1]=v;d[pi+2]=v;d[pi+3]=255;
-        }
-      }
-    } else if(ss==='blueprint'){
-      const gray=new Uint8ClampedArray(cv.width*cv.height);
-      for(let i=0;i<d.length;i+=4){
-        gray[i/4]=0.299*d[i]+0.587*d[i+1]+0.114*d[i+2];
-      }
-      for(let y=1;y<cv.height-1;y++){
-        for(let x=1;x<cv.width-1;x++){
-          const gx=-gray[(y-1)*cv.width+(x-1)]-2*gray[y*cv.width+(x-1)]-gray[(y+1)*cv.width+(x-1)]
-                   +gray[(y-1)*cv.width+(x+1)]+2*gray[y*cv.width+(x+1)]+gray[(y+1)*cv.width+(x+1)];
-          const gy=-gray[(y-1)*cv.width+(x-1)]-2*gray[(y-1)*cv.width+x]-gray[(y-1)*cv.width+(x+1)]
-                   +gray[(y+1)*cv.width+(x-1)]+2*gray[(y+1)*cv.width+x]+gray[(y+1)*cv.width+(x+1)];
-          const mag=Math.min(255,Math.sqrt(gx*gx+gy*gy)*2);
-          const pi=(y*cv.width+x)*4;
-          d[pi]=Math.max(20,220-mag*2);
-          d[pi+1]=Math.max(40,240-mag*1.5);
-          d[pi+2]=255;
-          d[pi+3]=255;
-        }
-      }
+    }catch(e){
+      st(e.message,'error');
     }
-
-    ctx.putImageData(id,0,0);
-    document.getElementById('db').classList.add('active');
-    st('変換完了！PNGをダウンロードして使用してください。','success');
+    btn.disabled=false;
+    btn.innerHTML='AIで変換';
   };
-  img.src=URL.createObjectURL(uf);
+  reader.readAsDataURL(uf);
 }
 
 function st(m,t){const e=document.getElementById('sb');e.textContent=m;e.className='st'+(t?' '+t:'')}
 
 function dl(){
+  if(!resultB64)return;
   const a=document.createElement('a');
   a.download='madori_illust_'+Date.now()+'.png';
-  a.href=cv.toDataURL('image/png');
+  a.href='data:image/png;base64,'+resultB64;
   a.click();
 }
 </script>
