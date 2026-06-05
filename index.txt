@@ -1,0 +1,1 @@
+cd ~/Roomtour-Layout-Image && pbpaste > index.html
